@@ -1,0 +1,3 @@
+testing.postgresql
+nose
+tox
