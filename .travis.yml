@@ -20,8 +20,7 @@ before_install:
 install:
   - pip install -r requirements-dev.txt
 script:
-  - export PATH=$HOME/bin:$PATH
-  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then make package ; else make test ; fi
+  - make test
   - flake8 .
 after_success:
   - codecov
