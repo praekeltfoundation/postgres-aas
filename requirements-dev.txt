@@ -1,0 +1,6 @@
+coverage
+testing.postgresql
+flake8
+tox
+pytest-cov
+-e .[test]
