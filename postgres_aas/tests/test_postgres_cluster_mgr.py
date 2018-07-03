@@ -49,12 +49,11 @@ class TestPostgresClusterMgr(unittest.TestCase):
                                        user=user,
                                        password=password)
             return True
-        except OperationalError as e:
+        except OperationalError:
             return False
         finally:
             if conn:
                 conn.close()
-
 
     def check_has_role(self, conn, user, role):
         check_role = ('WITH RECURSIVE cte AS ('
@@ -71,7 +70,7 @@ class TestPostgresClusterMgr(unittest.TestCase):
                 cur.execute(check_role)
                 rows = cur.fetchall()
                 return rows
-        except OperationalError as e:
+        except OperationalError:
             return False
         finally:
             if conn:
@@ -147,16 +146,16 @@ class TestPostgresClusterMgr(unittest.TestCase):
         postgres_pass = 'postgrespassword'
         yield self.database.provision(dbname, vault_user, vault_pass, db_owner, db_pass, postgres_pass)
         result = self.can_connect(dbname=dbname,
-                         host=self.database.db_host,
-                         port=self.database.db_port,
-                         user=db_owner,
-                         password=db_pass)
+                                  host=self.database.db_host,
+                                  port=self.database.db_port,
+                                  user=db_owner,
+                                  password=db_pass)
         self.assertTrue(result)
         result = self.can_connect(dbname=dbname,
-                         host=self.database.db_host,
-                         port=self.database.db_port,
-                         user=vault_user,
-                         password=vault_pass)
+                                  host=self.database.db_host,
+                                  port=self.database.db_port,
+                                  user=vault_user,
+                                  password=vault_pass)
         self.assertTrue(result)
 
     @inlineCallbacks
@@ -169,25 +168,25 @@ class TestPostgresClusterMgr(unittest.TestCase):
         postgres_pass = 'postgrespassword'
         yield self.database.provision(dbname, vault_user, vault_pass, db_owner, db_pass, postgres_pass)
         result = self.can_connect(dbname=dbname,
-                         host=self.database.db_host,
-                         port=self.database.db_port,
-                         user=db_owner,
-                         password=db_pass)
+                                  host=self.database.db_host,
+                                  port=self.database.db_port,
+                                  user=db_owner,
+                                  password=db_pass)
         self.assertTrue(result)
         yield self.database.deprovision(dbname, db_owner, vault_user)
         result = self.can_connect(dbname,
-                         host=self.database.db_host,
-                         port=self.database.db_port,
-                         user='postgres',
-                         password=postgres_pass)
+                                  host=self.database.db_host,
+                                  port=self.database.db_port,
+                                  user='postgres',
+                                  password=postgres_pass)
         self.assertFalse(result)
         result = self.can_connect(dbname=self.database.db_name,
-                         host=self.database.db_host,
-                         port=self.database.db_port,
-                         user=vault_user,
-                         password=vault_pass)
+                                  host=self.database.db_host,
+                                  port=self.database.db_port,
+                                  user=vault_user,
+                                  password=vault_pass)
         self.assertFalse(result)
-        
+
     def tearDown(self):
         db_con.close()
         db.stop()

@@ -26,12 +26,12 @@ class TestPostgresDB(unittest.TestCase):
                  'ip INET PRIMARY KEY, '
                  'host VARCHAR(256));')
         pg_clusters = ('CREATE TABLE postgres_sql_clusters ('
-                      'id SERIAL, '
-                      'ip INET REFERENCES postgres_sql_hosts(ip) '
-                      'ON DELETE CASCADE ON UPDATE CASCADE, '
-                      'port INT, '
-                      'PRIMARY KEY (ip, port)'
-                      ');')
+                       'id SERIAL, '
+                       'ip INET REFERENCES postgres_sql_hosts(ip) '
+                       'ON DELETE CASCADE ON UPDATE CASCADE, '
+                       'port INT, '
+                       'PRIMARY KEY (ip, port)'
+                       ');')
         pg_dbs = ('CREATE TABLE postgres_sql_instances ('
                   'id SERIAL, '
                   'ip INET, '
@@ -46,26 +46,26 @@ class TestPostgresDB(unittest.TestCase):
                        'binding_id VARCHAR(256) UNIQUE, '
                        'instance_id VARCHAR(256) REFERENCES postgres_sql_instances(instance_id) '
                        'ON DELETE CASCADE ON UPDATE CASCADE);')
-        
+
         db_con.autocommit = True
         with db_con.cursor() as cur:
             cur.execute(hosts)
             cur.execute(pg_clusters)
             cur.execute(pg_dbs)
             cur.execute(pg_bindings)
-    
+
     def make_host(self, ip, host):
         with db_con as conn:
             cur = conn.cursor()
             cur.execute('INSERT INTO postgres_sql_hosts '
                         'VALUES (DEFAULT, %s, %s)', (ip, host))
-            
+
     def make_cluster(self, ip, host, port):
         self.make_host(ip, host)
         with db_con.cursor() as cur:
             cur.execute('INSERT INTO postgres_sql_clusters '
                         'VALUES (DEFAULT, %s, %s)', (ip, port))
-            
+
     def add_cluster(self, ip, port):
         with db_con.cursor() as cur:
             cur.execute('INSERT INTO postgres_sql_clusters '
@@ -76,7 +76,7 @@ class TestPostgresDB(unittest.TestCase):
         with db_con.cursor() as cur:
             cur.execute('INSERT INTO postgres_sql_instances '
                         'VALUES (DEFAULT, %s, %s, %s, %s)', (ip, port, db_name, instance_id))
-            
+
     def add_instance(self, ip, port, db_name, instance_id):
         with db_con.cursor() as cur:
             cur.execute('INSERT INTO postgres_sql_instances '
@@ -87,7 +87,7 @@ class TestPostgresDB(unittest.TestCase):
         with db_con.cursor() as cur:
             cur.execute('INSERT INTO postgres_sql_bindings '
                         'VALUES (DEFAULT, %s, %s)', (binding_id, instance_id))
-            
+
     def add_binding(self, instance_id, binding_id):
         with db_con.cursor() as cur:
             cur.execute('INSERT INTO postgres_sql_bindings '
@@ -161,7 +161,7 @@ class TestPostgresDB(unittest.TestCase):
                         'where ip=%s', (ip,))
             rows = cur.fetchall()
             self.assertEquals(len(rows), 0)
-            
+
     @inlineCallbacks
     def test_remove_psql_cluster(self):
         ip = '127.0.0.1'
@@ -195,7 +195,7 @@ class TestPostgresDB(unittest.TestCase):
                         'where instance_id=%s', (instance_id,))
             rows = cur.fetchall()
             self.assertEquals(len(rows), 0)
-            
+
     @inlineCallbacks
     def test_remove_binding(self):
         ip = '127.0.0.1'
@@ -235,7 +235,7 @@ class TestPostgresDB(unittest.TestCase):
         self.make_binding(ip, host, port, db_name, instance_id, binding_id)
         result = self.database.cluster_exists(ip, port)
         self.assertTrue(result)
-        
+
     def test_instance_exists(self):
         ip = '127.0.0.1'
         host = 'hostname'
@@ -246,7 +246,7 @@ class TestPostgresDB(unittest.TestCase):
         self.make_binding(ip, host, port, db_name, instance_id, binding_id)
         result = self.database.instance_exists(instance_id)
         self.assertTrue(result)
-        
+
     def test_binding_exists(self):
         ip = '127.0.0.1'
         host = 'hostname'
@@ -258,8 +258,7 @@ class TestPostgresDB(unittest.TestCase):
         binding_id = 'purple-rain2342285'
         result = self.database.binding_exists(binding_id)
         self.assertTrue(result)
-        
-        
+
     @inlineCallbacks
     def test_get_hosts(self):
         host1 = 'hostname1'
@@ -270,7 +269,7 @@ class TestPostgresDB(unittest.TestCase):
         self.make_host(ip2, host2)
         result = yield self.database.get_hosts()
         self.assertEquals(len(result), 2)
-        
+
     @inlineCallbacks
     def test_get_clusters(self):
         host = 'hostname1'
@@ -282,7 +281,7 @@ class TestPostgresDB(unittest.TestCase):
         self.add_cluster(ip, port2)
         result = yield self.database.get_clusters()
         self.assertEquals(len(result), 2)
-        
+
     @inlineCallbacks
     def test_get_instances(self):
         ip = '127.0.0.1'
@@ -297,7 +296,7 @@ class TestPostgresDB(unittest.TestCase):
         self.add_instance(ip, port, db_name2, instance_id2)
         result = yield self.database.get_instances()
         self.assertEquals(len(result), 2)
-        
+
     @inlineCallbacks
     def test_get_bindings(self):
         ip = '127.0.0.1'
@@ -312,7 +311,7 @@ class TestPostgresDB(unittest.TestCase):
         self.add_binding(instance_id, binding_id2)
         result = yield self.database.get_bindings()
         self.assertEquals(len(result), 2)
-        
+
     def tearDown(self):
         self.database.close_connection()
         db_con.close()

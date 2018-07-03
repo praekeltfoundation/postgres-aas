@@ -1,5 +1,6 @@
 from twistar.dbobject import DBObject
 
+
 class Host(DBObject):
     pass
 

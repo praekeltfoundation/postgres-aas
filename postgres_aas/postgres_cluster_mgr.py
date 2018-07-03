@@ -3,9 +3,9 @@
 from psycopg2 import OperationalError
 from twisted.enterprise import adbapi
 from psycopg2.extras import DictCursor
-from twistar.registry import Registry
 from contextlib import closing
 from twisted.internet.defer import inlineCallbacks
+
 
 def _set_transaction_level(conn):
     conn.autocommit = True
@@ -70,15 +70,16 @@ class PostgreSQLClusterMgr(object):
     def _drop_database(self, db_name):
         drop_db = ('SELECT pg_terminate_backend(pg_stat_activity.pid)'
                    'FROM pg_stat_activity WHERE pg_stat_activity.datname = \'{0}\''
-                   'AND pid <> pg_backend_pid();'
-                   'DROP DATABASE {0};').format(db_name)
+                   'AND pid <> pg_backend_pid();').format(db_name)
+        delete_db = 'DROP DATABASE {0};'.format(db_name)
         with closing(self._connect_to_base_db()) as conn:
             yield conn.runOperation(drop_db).addCallbacks(_done_operation, _operation_failed)
+            yield conn.runOperation(delete_db).addCallbacks(_done_operation, _operation_failed)
 
     def _revoke_connect_on_database(self, conn, db_name):
         revoke_cod = 'REVOKE connect ON DATABASE {0} FROM PUBLIC;'.format(db_name)
         return conn.runOperation(revoke_cod).addCallbacks(_done_operation, _operation_failed)
-        
+
     def _change_postgres_password(self, conn, postgres_pass):
         change_postgres_password = 'ALTER USER postgres WITH ENCRYPTED PASSWORD \'{0}\''.format(postgres_pass)
         return conn.runOperation(change_postgres_password).addCallbacks(_done_operation, _operation_failed)
@@ -89,7 +90,7 @@ class PostgreSQLClusterMgr(object):
                         vault_user,
                         vault_password):
         add_vuser = ('CREATE ROLE {0} WITH CREATEROLE CREATEDB INHERIT LOGIN ENCRYPTED PASSWORD \'{1}\';'
-                     'GRANT ALL PRIVILEGES ON DATABASE {2} TO {0} WITH GRANT OPTION;'.format(vault_user, 
+                     'GRANT ALL PRIVILEGES ON DATABASE {2} TO {0} WITH GRANT OPTION;'.format(vault_user,
                                                                                              vault_password,
                                                                                              db_name))
         return conn.runOperation(add_vuser).addCallbacks(_done_operation, _operation_failed)
@@ -105,26 +106,24 @@ class PostgreSQLClusterMgr(object):
         return conn.runOperation(add_owner).addCallbacks(_done_operation, _operation_failed)
 
     def _grant_owner_to_vuser(self,
-                     conn,
-                     db_owner,
-                     vault_user):
+                              conn,
+                              db_owner,
+                              vault_user):
         grant_owner = ('GRANT {0} TO {1};'.format(db_owner, vault_user))
         return conn.runOperation(grant_owner).addCallbacks(_done_operation, _operation_failed)
-    
-    def _drop_role(self,
-                   role):
-        drop_role = ('REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public from {0};' 
-                    'REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public from {0};'
-                    'REVOKE ALL PRIVILEGES ON SCHEMA public from {0}; '
-                    'DROP ROLE IF EXISTS {0};').format(role)
+
+    def _drop_role(self, role):
+        drop_role = ('REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public from {0};'
+                     'REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public from {0};'
+                     'REVOKE ALL PRIVILEGES ON SCHEMA public from {0};').format(role)
         with closing(self._connect_to_base_db()) as conn:
             yield conn.runOperation(drop_role).addCallbacks(_done_operation, _operation_failed)
 
     def _remove_owner_role(self,
-                        conn,
-                        db_name,
-                        db_owner,
-                        db_pass):
+                           conn,
+                           db_name,
+                           db_owner,
+                           db_pass):
         add_owner = ('CREATE ROLE {1} WITH LOGIN ENCRYPTED PASSWORD \'{2}\';'
                      'ALTER DATABASE {0} OWNER TO {1};'
                      'ALTER SCHEMA public OWNER TO {1};'.format(db_name, db_owner, db_pass))
@@ -146,17 +145,14 @@ class PostgreSQLClusterMgr(object):
                                          password=passwd,
                                          db=db_name)
 
-
     def _get_connection_pool(self, host=None, port=None, user=None, password=None, db=None):
-        return adbapi.ConnectionPool(
-            'psycopg2',
-            database=db,
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            cp_min=1,
-            cp_max=2,
-            cursor_factory=DictCursor,
-            cp_openfun=_set_transaction_level)
-
+        return adbapi.ConnectionPool('psycopg2',
+                                     database=db,
+                                     host=host,
+                                     port=port,
+                                     user=user,
+                                     password=password,
+                                     cp_min=1,
+                                     cp_max=2,
+                                     cursor_factory=DictCursor,
+                                     cp_openfun=_set_transaction_level)

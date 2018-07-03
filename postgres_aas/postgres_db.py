@@ -2,17 +2,18 @@
 from twisted.enterprise import adbapi
 from twistar.registry import Registry
 from postgres_service.models import PostgresSQLInstance, PostgresSQLHost, PostgresSQLBinding, PostgresSQLCluster
-from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
-import psycopg2
+from twisted.internet.defer import inlineCallbacks, returnValue
 from psycopg2.extras import DictCursor
 
 
 def _set_transaction_level(conn):
     conn.autocommit = True
-    
+
+
 def _done_query(result):
     print('Query completed.')
     return result
+
 
 def _done_operation(result):
     print('Successfully executed command with result ' + str(result))
@@ -25,21 +26,10 @@ def _operation_failed(result):
 def _return_object(objects):
     return objects[0]
 
+
 @inlineCallbacks
 def _delete_object(object):
     yield object.delete().addCallbacks(_done_query, _operation_failed)
-    
-def ignore_pg_error(d, pgcode):
-    '''
-    Ignore a particular postgres error.
-    '''
-
-    def trap_err(f):
-        f.trap(psycopg2.ProgrammingError)
-        if f.value.pgcode != pgcode:
-            return f
-
-    return d.addErrback(trap_err)
 
 
 class PSQLServiceDB(object):
@@ -55,7 +45,6 @@ class PSQLServiceDB(object):
         self.db_user = db_user
         self.db_pass = db_pass
 
-    
     def add_psql_host(self,
                       hostname,
                       ip):
@@ -63,15 +52,15 @@ class PSQLServiceDB(object):
         host.host = hostname
         host.ip = ip
         return host.save().addCallbacks(_done_query, _operation_failed)
-    
+
     def add_psql_cluster(self,
-                        ip,
-                        port):
+                         ip,
+                         port):
         cluster = PostgresSQLCluster()
         cluster.ip = ip
         cluster.port = port
         return cluster.save().addCallbacks(_done_query, _operation_failed)
-    
+
     def add_psql_instance(self,
                           ip,
                           port,
@@ -83,7 +72,7 @@ class PSQLServiceDB(object):
         instance.port = port
         instance.instance_id = instance_id
         return instance.save().addCallbacks(_done_query, _operation_failed)
-    
+
     def add_binding(self,
                     instance_id,
                     binding_id):
@@ -128,12 +117,12 @@ class PSQLServiceDB(object):
         return PostgresSQLHost.find(
                 where=['ip = ?', ip],
                 limit=1).addCallbacks(_done_query, _operation_failed)
-    
+
     def get_cluster(self, ip, port):
         return PostgresSQLCluster.find(
                 where=['ip = ? AND port = ?', ip, port],
                 limit=1).addCallback(_done_query)
-        
+
     def get_instance(self, instance_id):
         return PostgresSQLInstance.find(
                 where=['instance_id = ?', instance_id],
@@ -149,12 +138,12 @@ class PSQLServiceDB(object):
     def host_exists(self, ip):
         instance = yield self.get_host(ip)
         returnValue(instance)
-        
+
     @inlineCallbacks
     def cluster_exists(self, ip, port):
         cluster = yield self.get_cluster(ip, port)
         returnValue(cluster)
-        
+
     @inlineCallbacks
     def instance_exists(self, instance_id):
         instance = yield self.get_instance(instance_id)
@@ -187,12 +176,12 @@ class PSQLServiceDB(object):
                  'ip INET PRIMARY KEY, '
                  'host VARCHAR(256));')
         pg_clusters = ('CREATE TABLE postgres_sql_clusters ('
-                      'id SERIAL, '
-                      'ip INET REFERENCES postgres_sql_hosts(ip) '
-                      'ON DELETE CASCADE ON UPDATE CASCADE, '
-                      'port INT, '
-                      'PRIMARY KEY (ip, port)'
-                      ');')
+                       'id SERIAL, '
+                       'ip INET REFERENCES postgres_sql_hosts(ip) '
+                       'ON DELETE CASCADE ON UPDATE CASCADE, '
+                       'port INT, '
+                       'PRIMARY KEY (ip, port)'
+                       ');')
         pg_dbs = ('CREATE TABLE postgres_sql_instances ('
                   'id SERIAL, '
                   'ip INET, '
@@ -216,10 +205,7 @@ class PSQLServiceDB(object):
         Registry.register(PostgresSQLHost, PostgresSQLCluster)
         Registry.register(PostgresSQLCluster, PostgresSQLInstance)
         Registry.register(PostgresSQLInstance, PostgresSQLBinding)
-    
+
     def close_connection(self):
         if Registry.DBPOOL:
             Registry.DBPOOL.close()
-
-
-
